@@ -167,7 +167,7 @@ function findUser(email) {
     return null;
 }
 
-app.post('/login', authenticateToken, (req, res) => {
+app.post('/login', (req, res) => {
     const { email, password } = req.body;
     let user = findUser(email);
     console.log(user)
@@ -232,7 +232,82 @@ app.get('/activeUserPosts', authenticateToken, (req, res) => {
     }
 })
 
+app.post('/commentPost/:postId', authenticateToken, (req, res) => {
+    let token = req.user.email
+    let postId = req.params.postId
+    let comment = req.body.comment
+    console.log(postId, token)
+    let user = findUser(token)
+    console.log(user)
+    if (user.posts.find(post => post.postId == postId)) {
+        console.log('exist')
+        return res.status(200).json("Posting comments on your own post is not allowed")
+    } else {
+        let post = Array.from(usersData.values())
+            .flatMap(userData => userData.posts.filter(post => post.postId == postId));
+        console.log(post[0])
+        post[0].comments += 1
+        post[0].commentsList.push({
+            commentId: post[0].commentsList.length + 1,
+            comment: comment,
+            commentedBy: user.name
+        })
+        return res.status(401).json({
+            message: 'Comment posted successfully',
+            post: post[0]
+        })
+    }
 
+})
+
+app.post('/likePost/:postId', authenticateToken, (req, res) => {
+    let token = req.user.email
+    let postId = req.params.postId
+    console.log(postId, token)
+    let user = findUser(token)
+    console.log(user)
+    if (user.posts.find(post => post.postId == postId)) {
+        console.log('exist')
+        return res.status(200).json("Like on your own post is not allowed")
+    } else {
+        let post = Array.from(usersData.values())
+            .flatMap(userData => userData.posts.filter(post => post.postId == postId));
+        console.log(post[0])
+        post[0].likes += 1
+        post[0].likedList.push({
+            likedId: post[0].likedList.length + 1,
+            likedBy: user.name
+        })
+        return res.status(401).json({
+            message: 'Post liked',
+            post: post[0]
+        })
+    }
+
+})
+
+app.delete('/deletePost/:postId', authenticateToken, (req, res) => {
+    let token = req.user.email
+    let postId = req.params.postId
+    let user = findUser(token)
+    let post = Array.from(usersData.values()).flatMap(userData => userData.posts.filter(post => post.postId == postId));
+    if (user.role === 'Super Admin') {
+        console.log(post[0])
+        return res.status(200).json({
+            message: 'Post deleted successfully',
+            post: post[0]
+        })
+    } else if (user.posts.find(post => post.postId == postId)) {
+        return res.status(200).json({
+            message: 'Post deleted successfully',
+            post: post[0]
+        })
+    } else {
+        return res.status(403).json({
+            message: 'You are not authorized to delete this post'
+        })
+    }
+})
 
 app.listen(port, () => {
     console.log(`Code run on ${port}`)
