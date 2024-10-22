@@ -5,7 +5,7 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 const jwt = require('jsonwebtoken');
 
-const secretKey='Paki47tan'
+const secretKey = 'Paki47tan'
 
 const usersData = new Map([
     [
@@ -77,7 +77,7 @@ const usersData = new Map([
                 commentsList: []
             }
             ]
-    }],
+        }],
     [
         'ahmad2723', {
             password: 'ahmad@567',
@@ -145,16 +145,16 @@ const usersData = new Map([
 ]);
 
 function authenticateToken(req, res, next) {
-    let token= req.headers.token
-    if(token){
-        let decoded= jwt.verify(token,secretKey)
-        req.user=decoded
+    let token = req.headers.token
+    if (token) {
+        let decoded = jwt.verify(token, secretKey)
+        req.user = decoded
         next()
     }
-    else{
+    else {
         return res.status(401).json({
             message: 'Token is required'
-        }) 
+        })
     }
 }
 
@@ -167,30 +167,70 @@ function findUser(email) {
     return null;
 }
 
-app.post('/login',authenticateToken, (req, res) => {
+app.post('/login', authenticateToken, (req, res) => {
     const { email, password } = req.body;
     let user = findUser(email);
     console.log(user)
-    if(user){
-        if( user.email=== email && user.password === password){
+    if (user) {
+        if (user.email === email && user.password === password) {
             const token = jwt.sign({ email: email }, secretKey);
             return res.status(200).json({
                 message: 'Logged in successfully',
                 token
             })
-        }else{
+        } else {
             return res.status(401).json({
                 message: 'Invalid email or password'
             })
         }
-    }else{
+    } else {
         return res.status(401).json({
             message: "Email doesn't exist"
         })
     }
 })
 
+app.get('/allUsersposts', authenticateToken, (req, res) => {
+    let token = req.user.email
+    let user = findUser(token)
+    console.log(user)
+    if (user) {
+        let allPosts = Array.from(usersData.values()).flatMap(userData => {
+            if (userData.email !== user.email) {
+                return userData.posts
+            }
+            return []
+        });
+        return res.status(200).json(allPosts)
+    }
+    else {
+        return res.status(403).json({
+            message: 'You are not authorized to access this resource'
+        })
+    }
+})
 
+app.get('/activeUserPosts', authenticateToken, (req, res) => {
+    console.log(req.user, 'kzjxkjz')
+    let token = req.user.email
+    let user = findUser(token)
+    console.log(user)
+    if (user) {
+        let allPosts = Array.from(usersData.values()).flatMap(userData => {
+            if (userData.email === user.email) {
+                return userData.posts
+            }
+            return []
+        }
+        );
+        return res.status(200).json(allPosts)
+    }
+    else {
+        return res.status(403).json({
+            message: 'You are not authorized to access this resource'
+        })
+    }
+})
 
 
 
